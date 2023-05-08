@@ -12,7 +12,14 @@ export class UserService {
   async create(payload: CreateUserDto) {
     const { email, first_name, last_name, password } = payload
 
-    await this.findByEmail(email)
+    const userExist = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    })
+
+    if (userExist)
+      throw new UnauthorizedException(USER_ERROR_MESSAGES.USER_ALREADY_REGISTER)
 
     const hashPassword = await generateHash(password)
 
@@ -40,5 +47,7 @@ export class UserService {
     })
 
     if (!user) throw new UnauthorizedException(USER_ERROR_MESSAGES.NOT_FOUND)
+
+    return user
   }
 }
