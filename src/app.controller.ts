@@ -1,12 +1,24 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Controller, Get, Request } from '@nestjs/common'
+import { AuthService } from './features/auth/auth.service'
+import { CurrentUser } from './features/auth/decorators/current-user.decorator'
+import { AuthRequest } from './features/auth/models'
+import { UserEntity } from './features/user/entities'
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly service: AuthService) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  @Get('me')
+  async findMe(
+    @CurrentUser() user: UserEntity,
+    @Request() request: AuthRequest
+  ) {
+    const { ...rest } = await this.service.revalidate(user.email)
+
+    request.user = {
+      ...(rest as any as UserEntity),
+    }
+
+    return rest
   }
 }
