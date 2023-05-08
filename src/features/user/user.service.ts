@@ -1,6 +1,9 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { PrismaService } from 'src/database/prisma.service'
 import { CreateUserDto } from './dto'
+import { USER_ERROR_MESSAGES } from './errors-messages'
+import { generateHash } from 'src/utils/custom-bcrypt'
+import { randomUUID } from 'crypto'
 
 @Injectable()
 export class UserService {
@@ -8,6 +11,25 @@ export class UserService {
 
   async create(payload: CreateUserDto) {
     const { email, first_name, last_name, password } = payload
+
+    await this.findByEmail(email)
+
+    const hashPassword = await generateHash(password)
+
+    const user = await this.prisma.user.create({
+      data: {
+        id: randomUUID(),
+        email,
+        first_name,
+        last_name,
+        password: hashPassword,
+      },
+    })
+
+    return {
+      ...user,
+      password: undefined,
+    }
   }
 
   async findByEmail(email: string) {
@@ -16,5 +38,7 @@ export class UserService {
         email,
       },
     })
+
+    if (!user) throw new UnauthorizedException(USER_ERROR_MESSAGES.NOT_FOUND)
   }
 }
